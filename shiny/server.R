@@ -70,6 +70,11 @@ shinyServer(function(input, output, session) {
         updateTextAreaInput(session, 'gene', value = '')
     })
 
+    get_goana_res <- reactive({
+        goana(get_gene_list()$entrezid,
+              species = get_species_dat()$species)
+    })
+
     output$goana_res <- renderDataTable({
 
         gene_list = get_gene_list()
@@ -80,8 +85,7 @@ shinyServer(function(input, output, session) {
                 message = 'GO term analysis',
                 detail = 'run goana',
                 value = 0.1, {
-                    goana_res = goana(get_gene_list()$entrezid,
-                                      species = get_species_dat()$species)
+                    goana_res = get_goana_res()
 
                     incProgress(detail = "calculate FDR",
                                 amount = 0.3)
@@ -89,9 +93,9 @@ shinyServer(function(input, output, session) {
                         dplyr::mutate(GO_id = rownames(goana_res)) %>%
                         dplyr::select(GO_id, everything()) %>%
                         dplyr::filter(Ont == 'BP', N >= 10) %>%
-                        dplyr::mutate(FDR = p.adjust(P.DE, method = 'fdr')) %>%
+                        dplyr::mutate(P.adjust = p.adjust(P.DE, method = input$p_type)) %>%
                         dplyr::arrange(P.DE) %>%
-                        dplyr::filter(FDR < 0.01) %>%
+                        dplyr::filter(P.adjust < input$threshold) %>%
                         dplyr::slice(1:50)
 
                     incProgress(detail = "add gene names",

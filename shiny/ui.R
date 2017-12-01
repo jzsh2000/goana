@@ -26,6 +26,21 @@ shinyUI(fluidPage(
                         'Mus musculus' = 'mouse'),
             selected = "human"
         ),
+        selectizeInput(
+            inputId = 'p_type',
+            label = 'P-values adjustment method',
+            choices = c('Raw P-values' = 'none',
+                        'Benjamini & Hochberg' = 'fdr',
+                        'Bonferroni' = 'bonferroni'),
+            selected = 'fdr'
+        ),
+        numericInput(
+            inputId = 'threshold',
+            label = 'P-values threshold',
+            value = 0.01,
+            min = 0,
+            max = 0.5
+        ),
         fluidRow(
             column(width = 9,
                    textAreaInput(
