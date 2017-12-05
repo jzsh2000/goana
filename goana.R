@@ -1,12 +1,31 @@
-suppressMessages(library(tidyverse))
-library(stringr)
-suppressMessages(library(magrittr))
-suppressMessages(library(glue))
-library(limma)
-suppressMessages(library(Homo.sapiens))
+#!/usr/bin/env Rscript
 
-gene_list_file = commandArgs(trailingOnly = TRUE)
-gene_list = read_lines(gene_list_file)
+args = commandArgs(trailingOnly = TRUE)
+
+if (length(args) == 0) {
+    cat('Rscript goana.R geneset.txt [output.csv]\n')
+    q(save = 'no')
+}
+
+gene_list_file = args[1]
+
+if (file.exists(gene_list_file)) {
+    suppressMessages(library(tidyverse))
+    library(stringr)
+    suppressMessages(library(magrittr))
+    suppressMessages(library(glue))
+    library(limma)
+    suppressMessages(library(Homo.sapiens))
+
+    gene_list = read_lines(gene_list_file)
+    output_file = paste0(gene_list_file, '.goana.csv')
+} else {
+    q(save = 'no')
+}
+
+if (length(args) >= 2 && dir.exists(dirname((args[2])))) {
+    output_file = args[2]
+}
 
 gene_list = gene_list[-(1:which(str_detect(gene_list, '^>')))]
 cat(glue('The number of input genes is {length(gene_list)}\n\n'))
@@ -59,4 +78,4 @@ as_data_frame(goana_res) %>%
             dplyr::pull(symbol)
         paste(unique(gene_name_list), collapse = ', ')
     })) %>%
-    write_csv(paste0(gene_list_file, '.goana.csv'))
+    write_csv(output_file)
