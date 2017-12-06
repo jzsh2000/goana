@@ -14,8 +14,9 @@ if (file.exists(gene_list_file)) {
     library(stringr)
     suppressMessages(library(magrittr))
     suppressMessages(library(glue))
+    library(progress)
     library(limma)
-    suppressMessages(library(Homo.sapiens))
+    suppressMessages(library(org.Hs.eg.db))
 
     gene_list = read_lines(gene_list_file)
     output_file = paste0(gene_list_file, '.goana.csv')
@@ -31,7 +32,7 @@ gene_list = gene_list[-(1:which(str_detect(gene_list, '^>')))]
 cat(glue('The number of input genes is {length(gene_list)}\n\n'))
 
 # map gene symbols to entrez ids
-gene_entrezid = suppressMessages(mapIds(Homo.sapiens,
+gene_entrezid = suppressMessages(mapIds(org.Hs.eg.db,
                        keys = gene_list,
                        keytype = "SYMBOL",
                        column = "ENTREZID"))
@@ -56,7 +57,7 @@ cat(glue('The number of matched genes is {nrow(gene_name2id)}\n\n'))
 goana_res = goana(gene_name2id$entrezid,
                   species = 'Hs')
 
-cat(glue('Write output csv file to {gene_list_file}.goana.csv\n\n'))
+cat(glue('Write output csv file to {output_file}\n\n'))
 
 # Add detailed gene names for each GO term and write result to local file
 # Thresholds:
@@ -64,18 +65,22 @@ cat(glue('Write output csv file to {gene_list_file}.goana.csv\n\n'))
 # * Only use GO term with more than 10 genes
 # * FDR < 0.01
 go_eg_fulltable = toTable(org.Hs.egGO2ALLEGS)
-as_data_frame(goana_res) %>%
-    dplyr::mutate(GO_id = rownames(goana_res)) %>%
-    dplyr::select(GO_id, everything()) %>%
+goana_res %<>%
+    rownames_to_column('GO_id') %>%
+    as_data_frame() %>%
     dplyr::filter(Ont == 'BP', N >= 10) %>%
     dplyr::mutate(FDR = p.adjust(P.DE, method = 'fdr')) %>%
     dplyr::arrange(P.DE) %>%
-    dplyr::filter(FDR < 0.01) %>%
+    dplyr::filter(FDR < 0.01)
+
+pb <- progress_bar$new(total = nrow(goana_res))
+goana_res %>%
     dplyr::mutate(gene_list = map_chr(GO_id, function(id) {
         full_table = filter(go_eg_fulltable, go_id == id)
         gene_name_list = gene_name2id %>%
             dplyr::filter(entrezid %in% full_table$gene_id) %>%
             dplyr::pull(symbol)
+        pb$tick()
         paste(unique(gene_name_list), collapse = ', ')
     })) %>%
     write_csv(output_file)
