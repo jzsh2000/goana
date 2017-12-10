@@ -29,7 +29,6 @@ if (length(args) >= 2 && dir.exists(dirname((args[2])))) {
 }
 
 gene_list = gene_list[-(1:which(str_detect(gene_list, '^>')))]
-cat(glue('The number of input genes is {length(gene_list)}\n\n'))
 
 # map gene symbols to entrez ids
 gene_entrezid = suppressMessages(mapIds(org.Hs.eg.db,
@@ -42,16 +41,23 @@ gene_name2id = enframe(gene_entrezid,
                        name = 'symbol', value = 'entrezid')
 
 if (sum(is.na(gene_name2id$entrezid)) > 0) {
-    cat('unmatched genes:\n')
-    gene_name2id %>%
+    gene_unmatched = gene_name2id %>%
         filter(is.na(entrezid)) %>%
         pull(symbol)
+    if (length(gene_unmatched) > 5) {
+        glue('Unmatch genes: {paste(gene_unmatched[1:5], collapse=", ") ...}')
+    } else {
+        glue('Unmatch genes: {paste(gene_unmatched, collapse=", ")}')
+    }
 }
 
 gene_name2id %<>%
     dplyr::filter(!is.na(entrezid))
 
-cat(glue('The number of matched genes is {nrow(gene_name2id)}\n\n'))
+glue('
+    The number of matched genes is \\
+    {nrow(gene_name2id)}/{length(gene_list)}
+    ')
 
 # run GO term enrichment analysis using `goana` function in limma package
 goana_res = goana(gene_name2id$entrezid,
