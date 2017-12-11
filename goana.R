@@ -17,6 +17,7 @@ if (file.exists(gene_list_file)) {
     library(progress)
     library(limma)
     suppressMessages(library(org.Hs.eg.db))
+    suppressMessages(library(crayon))
 
     gene_list = read_lines(gene_list_file)
     output_file = paste0(gene_list_file, '.goana.csv')
@@ -40,6 +41,11 @@ gene_entrezid = suppressMessages(mapIds(org.Hs.eg.db,
 gene_name2id = enframe(gene_entrezid,
                        name = 'symbol', value = 'entrezid')
 
+glue('
+    The number of matched genes is \\
+    {bold(sum(!is.na(gene_name2id$entrezid)))}/{bold(length(gene_list))}
+    ')
+
 if (sum(is.na(gene_name2id$entrezid)) > 0) {
     gene_unmatched = gene_name2id %>%
         filter(is.na(entrezid)) %>%
@@ -47,23 +53,25 @@ if (sum(is.na(gene_name2id$entrezid)) > 0) {
     if (length(gene_unmatched) > 5) {
         glue('Unmatch genes: {paste(gene_unmatched[1:5], collapse=", ") ...}')
     } else {
-        glue('Unmatch genes: {paste(gene_unmatched, collapse=", ")}')
+        glue('Unmatch genes: {paste(red(gene_unmatched), collapse=", ")}')
     }
 }
 
 gene_name2id %<>%
     dplyr::filter(!is.na(entrezid))
 
-glue('
-    The number of matched genes is \\
-    {nrow(gene_name2id)}/{length(gene_list)}
-    ')
-
 # run GO term enrichment analysis using `goana` function in limma package
 goana_res = goana(gene_name2id$entrezid,
                   species = 'Hs')
 
-cat(glue('Write output csv file to {output_file}\n\n'))
+glue('Top gene ontology terms:')
+goana_res[, c('Term', 'P.DE')] %>%
+    rownames_to_column() %>%
+    arrange(P.DE) %>%
+    column_to_rownames() %>%
+    head()
+
+glue('Write output csv file to {output_file}')
 
 # Add detailed gene names for each GO term and write result to local file
 # Thresholds:
