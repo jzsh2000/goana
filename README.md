@@ -1,7 +1,7 @@
 goana
 =====
 
-GO analysis, use `goana` function in
+GO analysis, use the `goana` function in
 [limma](http://bioconductor.org/packages/release/bioc/html/limma.html) package
 under the hook.
 
@@ -15,9 +15,12 @@ Rscript goana.R <geneset.txt> [output.csv]
 ```
 
 Here `geneset.txt` is a gene list file with one gene name per line, see
-[geneset.txt](shiny/geneset.txt) as an example. If the parameter `output.csv`
-isn't set, the output csv file will be saved in the same directory as
-`geneset.txt` file (the name of output file would be \*.goana.csv).
+[geneset.txt](shiny/geneset.txt) as an example, which was downloaded from
+[MSigDB](http://software.broadinstitute.org/gsea/msigdb) website. All lines
+before the line that starts with '>' will be omitted. If the parameter
+`output.csv` isn't provided, the output csv file will be saved in the same
+directory as `geneset.txt` file (the name of output file would be
+\*.goana.csv).
 
 output
 ------
